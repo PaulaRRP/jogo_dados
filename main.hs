@@ -1,3 +1,6 @@
+-- Paula Rinco Rodrigues Pereira - 201865559C
+-- Luciana Nascimento Santana Prachedes - 2020
+
 import System.Random (randomRIO)
 
 -- Define um novo tipo Dado, que é um wrapper para Int
