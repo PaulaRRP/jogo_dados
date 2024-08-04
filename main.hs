@@ -15,7 +15,12 @@ main = do
     listaDeDados <- criarListaDeDados numDados
     putStrLn ("Seu jogo será iniciado com " ++ show (length listaDeDados) ++ " dados.")
     putStrLn ("Lista de dados: " ++ show listaDeDados)
-    resultado <- realizaJogadas listaDeDados True  -- True significa que é a vez do jogador
+    putStrLn "Escolha o modo de jogo: 1 para fácil, 2 para difícil"
+    modoInput <- getLine
+    let modo = read modoInput :: Int
+    resultado <- if modo == 2
+                    then realizaJogadasDificil listaDeDados False -- Nível difícil, computador começa
+                    else realizaJogadas listaDeDados True         -- Nível fácil, jogador começa
     putStrLn resultado
 
 -- Função para criar uma lista de Dados com valores aleatórios
@@ -28,7 +33,7 @@ gerarDadoAleatorio = do
     valor <- randomRIO (1, 6)
     return (Dado valor)
 
--- Função recursiva para realizar jogadas alternadas e retornar o resultado
+-- Função recursiva para realizar jogadas alternadas e retornar o resultado para nível fácil
 realizaJogadas :: [Dado] -> Bool -> IO String
 realizaJogadas [] _ = return "Todos os dados foram removidos. Jogo encerrado."
 realizaJogadas dados True = do
@@ -43,6 +48,23 @@ realizaJogadas dados False = do
     if null dadosAtualizados
         then return "O computador venceu!"
         else realizaJogadas dadosAtualizados True  -- Alterna para a vez do jogador
+        
+-- Função recursiva para realizar jogadas alternadas e retornar o resultado para nível difícil
+realizaJogadasDificil :: [Dado] -> Bool -> IO String
+realizaJogadasDificil [] _ = return "Todos os dados foram removidos. Jogo encerrado."
+realizaJogadasDificil dados True = do
+    putStrLn "É a sua vez de jogar."
+    dadosAtualizados <- realizaJogada dados
+    if null dadosAtualizados
+        then return "Parabéns! Você venceu!"
+        else realizaJogadasDificil dadosAtualizados False  -- Alterna para a vez do computador
+realizaJogadasDificil dados False = do
+    putStrLn "É a vez do computador."
+    dadosAtualizados <- jogadaComputadorDificil dados
+    if null dadosAtualizados
+        then return "O computador venceu!"
+        else realizaJogadasDificil dadosAtualizados True  -- Alterna para a vez
+
 
 -- Função para realizar uma jogada do jogador
 realizaJogada :: [Dado] -> IO [Dado]
@@ -69,7 +91,7 @@ realizaJogada dados = do
                     putStrLn ("Valores possíveis: " ++ show valoresPossiveis)
                     novoValorInput <- getLine
                     let novoValor = read novoValorInput :: Int
-                    if novoValor `elem` valoresPossiveis
+                    if novoValor elem valoresPossiveis
                         then do
                             let dadoAtualizado = Dado novoValor
                             let dadosAtualizados = atualizarDado dados (escolha - 1) dadoAtualizado
@@ -82,7 +104,7 @@ realizaJogada dados = do
         else do
             putStrLn "Escolha inválida. Tente novamente."
             realizaJogada dados
-
+            
 -- Função para a jogada do computador
 jogadaComputador :: [Dado] -> IO [Dado]
 jogadaComputador dados = do
@@ -116,3 +138,43 @@ removeDado dados idx = take idx dados ++ drop (idx + 1) dados
 -- Função para atualizar um dado na lista com base no índice
 atualizarDado :: [Dado] -> Int -> Dado -> [Dado]
 atualizarDado dados idx novoDado = take idx dados ++ [novoDado] ++ drop (idx + 1) dados
+
+-- Funções auxiliares para a análise da configuração
+
+-- Função para verificar se uma configuração de um único dado é vencedora
+configuracaoVencedora1 :: Int -> Bool
+configuracaoVencedora1 1 = True
+configuracaoVencedora1 2 = False
+configuracaoVencedora1 3 = True
+configuracaoVencedora1 4 = True
+configuracaoVencedora1 5 = False
+configuracaoVencedora1 6 = True
+configuracaoVencedora1 _ = False
+
+-- Função para verificar se uma configuração de dois dados é vencedora
+configuracaoVencedora2 :: Int -> Int -> Bool
+configuracaoVencedora2 x y
+    | x == y = False
+    | x + y == 7 = False
+    | otherwise = True
+
+-- Função para verificar se a configuração é vencedora ou perdedora
+configuracaoVencedoraN :: [Int] -> Bool
+configuracaoVencedoraN dados = 
+    case filteredDados of
+        [] -> True  -- Nenhum dado restante, configuração vencedora
+        [x] -> configuracaoVencedora1 x  -- Verifica configuração de um único dado
+        [x, y] -> configuracaoVencedora2 x y  -- Verifica configuração de dois dados
+        _ -> not $ any (== False) validPairs  -- Verifica pares restantes
+  where
+    -- Filtra dados removendo faces 2 ou 5
+    filteredDados = filter (notElem [2, 5]) dados
+    
+    -- Gera todos os pares de dados restantes
+    pares = [(x, y) | x <- filteredDados, y <- filteredDados, x /= y]
+    
+    -- Filtra pares com faces iguais e pares que somam 7
+    paresValidos = filter (\(x, y) -> x /= y && x + y /= 7) pares
+    
+    -- Verifica se todos os pares válidos são perdedores
+    validPairs = map (uncurry configuracaoVencedora2) paresValidos
