@@ -63,7 +63,7 @@ realizaJogadas dados False = do
     if null dadosAtualizados
         then return "O computador venceu!"
         else realizaJogadas dadosAtualizados True  -- Alterna para a vez do jogador
-        
+
 -- Função recursiva para realizar jogadas alternadas e retornar o resultado para nível difícil
 realizaJogadasDificil :: [Dado] -> Bool -> IO String
 realizaJogadasDificil [] _ = return "Todos os dados foram removidos. Jogo encerrado."
@@ -101,7 +101,7 @@ realizaJogada dados = do
                 else do
                     putStrLn ("O dado escolhido tem o valor " ++ show valorEscolhido ++ ".")
                     putStrLn "Escolha o novo valor para o dado (menor que o valor atual):"
-                    let valoresPossiveis = [1..(valorEscolhido - 1)]
+                    let valoresPossiveis = filter (/= 7 - valorEscolhido) [1..(valorEscolhido - 1)] -- Exclui o valor oposto que soma 7
                     putStrLn ("Valores possíveis: " ++ show valoresPossiveis)
                     novoValorInput <- getLine
                     let novoValor = read novoValorInput :: Int
@@ -118,7 +118,7 @@ realizaJogada dados = do
         else do
             putStrLn "Escolha inválida. Tente novamente."
             realizaJogada dados
-            
+
 -- Função para a jogada do computador
 jogadaComputador :: [Dado] -> IO [Dado]
 jogadaComputador dados = do
@@ -126,7 +126,7 @@ jogadaComputador dados = do
     idx <- randomRIO (0, length dados - 1)
     let dadoEscolhido = dados !! idx
     let valorEscolhido = obterValor dadoEscolhido
-    let valoresPossiveis = [1..(valorEscolhido - 1)]
+    let valoresPossiveis = filter (/= 7 - valorEscolhido) [1..(valorEscolhido - 1)] -- Exclui o valor oposto que soma 7
     if null valoresPossiveis
         then do
             let dadosAtualizados = removeDado dados idx
@@ -223,7 +223,7 @@ jogadaComputadorDificil dados = do
                 idx <- randomRIO (0, length dados - 1)
                 let dadoEscolhido = dados !! idx
                 let valorEscolhido = obterValor dadoEscolhido
-                let valoresPossiveis = [1..(valorEscolhido - 1)]
+                let valoresPossiveis = filter (/= 7 - valorEscolhido) [1..(valorEscolhido - 1)] -- Exclui o valor oposto que soma 7
                 if null valoresPossiveis
                     then do
                         let dadosAtualizados = removeDado dados idx
