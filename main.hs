@@ -15,9 +15,7 @@ main = do
     listaDeDados <- criarListaDeDados numDados
     putStrLn ("Seu jogo será iniciado com " ++ show (length listaDeDados) ++ " dados.")
     putStrLn ("Lista de dados: " ++ show listaDeDados)
-    putStrLn "Escolha o modo de jogo: 1 para fácil, 2 para difícil"
-    modoInput <- getLine
-    let modo = read modoInput :: Int
+    modo <- escolherModo
     resultado <- if modo == 2
                     then realizaJogadasDificil listaDeDados False -- Nível difícil, computador começa
                     else realizaJogadas listaDeDados True         -- Nível fácil, jogador começa
@@ -32,6 +30,23 @@ gerarDadoAleatorio :: IO Dado
 gerarDadoAleatorio = do
     valor <- randomRIO (1, 6)
     return (Dado valor)
+
+-- Função para verificar e escolher o modo de jogo
+escolherModo :: IO Int
+escolherModo = do
+    putStrLn "Escolha o modo de jogo: 1 para fácil, 2 para difícil"
+    modoInput <- getLine
+    let modo = readModo modoInput
+    case modo of
+        Nothing -> do
+            putStrLn "Modo inválido. Tente novamente."
+            escolherModo
+        Just m  -> return m
+  where
+    readModo :: String -> Maybe Int
+    readModo str = case reads str of
+        [(n, "")] | n `elem` [1, 2] -> Just n
+        _ -> Nothing
 
 -- Função recursiva para realizar jogadas alternadas e retornar o resultado para nível fácil
 realizaJogadas :: [Dado] -> Bool -> IO String
@@ -64,7 +79,6 @@ realizaJogadasDificil dados False = do
     if null dadosAtualizados
         then return "O computador venceu!"
         else realizaJogadasDificil dadosAtualizados True  -- Alterna para a vez
-
 
 -- Função para realizar uma jogada do jogador
 realizaJogada :: [Dado] -> IO [Dado]
@@ -178,7 +192,7 @@ configuracaoVencedoraN dados =
     
     -- Verifica se todos os pares válidos são perdedores
     validPairs = map (uncurry configuracaoVencedora2) paresValidos
-    
+
 -- Função para a jogada do computador no nível difícil
 jogadaComputadorDificil :: [Dado] -> IO [Dado]
 jogadaComputadorDificil dados = do
@@ -223,4 +237,3 @@ jogadaComputadorDificil dados = do
                         putStrLn ("Computador atualizou o dado de " ++ show dadoEscolhido ++ " para " ++ show dadoAtualizado)
                         putStrLn ("Lista de dados atualizada: " ++ show dadosAtualizados)
                         return dadosAtualizados
-
