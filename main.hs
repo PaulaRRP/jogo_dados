@@ -91,7 +91,7 @@ realizaJogada dados = do
                     putStrLn ("Valores possíveis: " ++ show valoresPossiveis)
                     novoValorInput <- getLine
                     let novoValor = read novoValorInput :: Int
-                    if novoValor elem valoresPossiveis
+                    if novoValor `elem` valoresPossiveis
                         then do
                             let dadoAtualizado = Dado novoValor
                             let dadosAtualizados = atualizarDado dados (escolha - 1) dadoAtualizado
@@ -168,7 +168,7 @@ configuracaoVencedoraN dados =
         _ -> not $ any (== False) validPairs  -- Verifica pares restantes
   where
     -- Filtra dados removendo faces 2 ou 5
-    filteredDados = filter (notElem [2, 5]) dados
+    filteredDados = filter (`notElem` [2, 5]) dados
     
     -- Gera todos os pares de dados restantes
     pares = [(x, y) | x <- filteredDados, y <- filteredDados, x /= y]
@@ -178,3 +178,49 @@ configuracaoVencedoraN dados =
     
     -- Verifica se todos os pares válidos são perdedores
     validPairs = map (uncurry configuracaoVencedora2) paresValidos
+    
+-- Função para a jogada do computador no nível difícil
+jogadaComputadorDificil :: [Dado] -> IO [Dado]
+jogadaComputadorDificil dados = do
+    -- Encontrar dados que podem ser removidos (face 1)
+    let dadosRemoviveis = [idx | (idx, dado) <- zip [0..] dados, obterValor dado == 1]
+    let todasRotacoes = [atualizarDado dados idx (Dado novoValor) | idx <- [0..length dados - 1], novoValor <- [1..(obterValor (dados !! idx) - 1)]]
+
+    -- Filtrar as jogadas que levam a uma configuração perdedora
+    let jogadasRemocaoPerdedoras = [removeDado dados idx | idx <- dadosRemoviveis, not (configuracaoVencedoraN (map obterValor (removeDado dados idx)))]
+    let rotacoesPerdedoras = filter (not . configuracaoVencedoraN . map obterValor) todasRotacoes
+    
+    if not (null jogadasRemocaoPerdedoras)
+        then do
+            -- Se houver jogadas de remoção que são perdedoras, escolha uma aleatoriamente
+            idx <- randomRIO (0, length jogadasRemocaoPerdedoras - 1)
+            let dadosAtualizados = jogadasRemocaoPerdedoras !! idx
+            putStrLn ("Computador removeu um dado. Lista de dados atualizada: " ++ show dadosAtualizados)
+            return dadosAtualizados
+        else if not (null rotacoesPerdedoras)
+            then do
+                -- Se houver rotações que são perdedoras, escolha uma aleatoriamente
+                idx <- randomRIO (0, length rotacoesPerdedoras - 1)
+                let dadosAtualizados = rotacoesPerdedoras !! idx
+                putStrLn ("Computador rotacionou um dado. Lista de dados atualizada: " ++ show dadosAtualizados)
+                return dadosAtualizados
+            else do
+                -- Caso não encontre jogadas ou rotações perdedoras, faça uma jogada aleatória
+                idx <- randomRIO (0, length dados - 1)
+                let dadoEscolhido = dados !! idx
+                let valorEscolhido = obterValor dadoEscolhido
+                let valoresPossiveis = [1..(valorEscolhido - 1)]
+                if null valoresPossiveis
+                    then do
+                        let dadosAtualizados = removeDado dados idx
+                        putStrLn ("Computador removeu o dado: " ++ show dadoEscolhido)
+                        putStrLn ("Lista de dados atualizada: " ++ show dadosAtualizados)
+                        return dadosAtualizados
+                    else do
+                        novoValor <- randomRIO (1, valorEscolhido - 1)
+                        let dadoAtualizado = Dado novoValor
+                        let dadosAtualizados = atualizarDado dados idx dadoAtualizado
+                        putStrLn ("Computador atualizou o dado de " ++ show dadoEscolhido ++ " para " ++ show dadoAtualizado)
+                        putStrLn ("Lista de dados atualizada: " ++ show dadosAtualizados)
+                        return dadosAtualizados
+
